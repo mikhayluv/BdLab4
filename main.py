@@ -149,6 +149,7 @@ def work_contract(worker_ids):
     amount_of_contracts = 0
     spaceship_jobs = open("raw_data/spaceship_workers", "r", encoding="utf-8").read().splitlines()
     active_contracts_id = []
+    person_id_with_active_contract = []
     for index, value in enumerate(worker_ids):
         temp_date = random_date(datetime.date(year=2010, month=1, day=1), datetime.date(year=2017, month=11, day=20))
         while temp_date <= today_date:
@@ -167,10 +168,11 @@ def work_contract(worker_ids):
             string += substring
             if temp_date > today_date:
                 active_contracts_id.append(amount_of_contracts)
+                person_id_with_active_contract.append(value)
     string += ";"
     stream = open("inserts/workers.txt", 'w')
     stream.write(string)
-    return amount_of_contracts, active_contracts_id
+    return amount_of_contracts, active_contracts_id, person_id_with_active_contract
 
 
 # Инсерты локаций с запоминанием на каком именно корабле какая локация
@@ -377,45 +379,77 @@ def human_location(person_on_ship_1, person_on_ship_2, person_on_ship_3, person_
 
 # Инсерты работников с активными контрактами.
 # Данная таблица подразумевает тригерную функцию или процедуру хз
-def employee(active_contracts_id):
+def employee(active_contracts_id, person_id_with_active_contract, person_on_ship_1, person_on_ship_2, person_on_ship_3, person_on_ship_4, person_on_ship_5):
     employee_id = []
+    employee_id_ship_1 = []
+    employee_id_ship_2 = []
+    employee_id_ship_3 = []
+    employee_id_ship_4 = []
+    employee_id_ship_5 = []
+    i = 0
     string = "INSERT INTO s311289.Employee (work_contract_id) VALUES "
     for index, value in enumerate(active_contracts_id):
-        employee_id.append(index + 1)
+        i += 1
+        employee_id.append(i)
         substring = "('" + str(value) + "')"
+        if person_id_with_active_contract[index] in person_on_ship_1:
+            employee_id_ship_1.append(i)
+        elif person_id_with_active_contract[index] in person_on_ship_2:
+            employee_id_ship_2.append(i)
+        elif person_id_with_active_contract[index] in person_on_ship_3:
+            employee_id_ship_3.append(i)
+        elif person_id_with_active_contract[index] in person_on_ship_4:
+            employee_id_ship_4.append(i)
+        else:
+            employee_id_ship_5.append(i)
         if index != len(active_contracts_id) - 1:
             substring += ","
         string += substring
     string += ";"
     stream = open("inserts/employee.txt", "w")
     stream.write(string)
-    return employee_id
+    return employee_id, employee_id_ship_1, employee_id_ship_2, employee_id_ship_3, employee_id_ship_4, employee_id_ship_5
 
 
 # Да, это жёстко
-def human_task(employee_id):
+def human_task(employee_id, employee_id_ship_1, employee_id_ship_2, employee_id_ship_3, employee_id_ship_4, employee_id_ship_5):
     human_tasks = open("raw_data/task_for_human", "r", encoding="utf-8").read().splitlines()
     string = "INSERT INTO s311289.Human_task (task, is_done, employee_id) VALUES "
     task_id = []
     done_task_id = []
     who_did_it = []
+    human_task_on_ship_1 = []
+    human_task_on_ship_2 = []
+    human_task_on_ship_3 = []
+    human_task_on_ship_4 = []
+    human_task_on_ship_5 = []
     for i in range(1, 10000):
         task_id.append(i)
         bol = ["TRUE", "FALSE"]
         rnd_bool = random.choice(bol)
         empl = random.choice(employee_id)
+        if empl in employee_id_ship_1:
+            human_task_on_ship_1.append(i)
+        elif empl in employee_id_ship_2:
+            human_task_on_ship_2.append(i)
+        elif empl in employee_id_ship_3:
+            human_task_on_ship_3.append(i)
+        elif empl in employee_id_ship_4:
+            human_task_on_ship_4.append(i)
+        else:
+            human_task_on_ship_5.append(i)
         substring = "('" + random.choice(human_tasks) + "', '" + str(rnd_bool) + "', '" + str(empl) + "')"
         if rnd_bool == "TRUE":
             done_task_id.append(i)
             who_did_it.append(empl)
-        if i != 12131:
+        if i != 9999:
             substring += ","
         string += substring
     string += ";"
     stream = open("inserts/human_task.txt", "w")
     stream.write(string)
     done_task_info = dict(zip(done_task_id, who_did_it))
-    return task_id, done_task_info
+    return task_id, done_task_info, human_task_on_ship_1, human_task_on_ship_2, human_task_on_ship_3, human_task_on_ship_4, human_task_on_ship_5
 
 
 def human_job_is_done(done_task_info):
@@ -440,8 +474,57 @@ def human_job_is_done(done_task_info):
 
 # Разобраться, как привязать сюда людей на кораблях
 def human_task_location(location_with_spaceship_1, location_with_spaceship_2, location_with_spaceship_3,
-                        location_with_spaceship_4, location_with_spaceship_5):
+                        location_with_spaceship_4, location_with_spaceship_5, human_task_on_ship_1, human_task_on_ship_2, human_task_on_ship_3, human_task_on_ship_4, human_task_on_ship_5):
     string = "INSERT INTO s311289.Human_task_location (task_id, location_id) VALUES "
+    for index, value in enumerate(human_task_on_ship_1):
+        substring = "('" + str(value) + "', '" + str(random.choice(location_with_spaceship_1)) + "')"
+        substring += ","
+        string += substring
+    for index, value in enumerate(human_task_on_ship_2):
+        substring = "('" + str(value) + "', '" + str(random.choice(location_with_spaceship_2)) + "')"
+        substring += ","
+        string += substring
+    for index, value in enumerate(human_task_on_ship_3):
+        substring = "('" + str(value) + "', '" + str(random.choice(location_with_spaceship_3)) + "')"
+        substring += ","
+        string += substring
+    for index, value in enumerate(human_task_on_ship_4):
+        substring = "('" + str(value) + "', '" + str(random.choice(location_with_spaceship_4)) + "')"
+        if index != len(human_task_on_ship_4) - 1:
+            substring += ","
+        string += substring
+    for index, value in enumerate(human_task_on_ship_5):
+        substring = "('" + str(value) + "', '" + str(random.choice(location_with_spaceship_5)) + "')"
+        substring += ","
+        string += substring
+    string += ";"
+    stream = open("inserts/human_task_location.txt", "w")
+    stream.write(string)
+
+def createFullInsertFile():             #скомкать все инсерты в один текстовик
+    string = open("INSERTS/spaceships.txt", 'r', encoding="utf-8").read()
+    string += open("INSERTS/planets.txt", 'r', encoding="utf-8").read()
+    string += open("INSERTS/spaceship_on_planet.txt", 'r', encoding="utf-8").read()
+    string += open("INSERTS/humans.txt", 'r', encoding="utf-8").read()
+    string += open("INSERTS/robot.txt", 'r', encoding="utf-8").read()
+    string += open("INSERTS/robots_on_spaceship.txt", 'r', encoding="utf-8").read()
+    string += open("INSERTS/robot_task.txt", 'r', encoding="utf-8").read()
+    string += open("INSERTS/check_planet.txt", 'r', encoding="utf-8").read()
+    string += open("INSERTS/robot_task_location.txt", 'r', encoding="utf-8").read()
+    string += open("INSERTS/boarded_humans.txt", 'r', encoding="utf-8").read()
+    string += open("INSERTS/human_location.txt", 'r', encoding="utf-8").read()
+    string += open("INSERTS/workers.txt", 'r', encoding="utf-8").read()
+    string += open("INSERTS/employee.txt", 'r', encoding="utf-8").read()
+    string += open("INSERTS/human_task.txt", 'r', encoding="utf-8").read()
+    string += open("INSERTS/human_task_location.txt", 'r', encoding="utf-8").read()
+    string += open("INSERTS/human_job_is_done.txt", 'r', encoding="utf-8").read()
+
+    print("esli tvoemu kompu ne pizda to grats")
+    stream = open("INSERTS/Insert_FULL.txt", 'w')
+    stream.write(string)
+    stream.close()
+    return
+
 
 
 def main():
@@ -463,10 +546,12 @@ def main():
     human_amount, worker_ids, human_ids = humans()
     print(f"Все людей: {human_amount}")
     print(f"ID людей: {human_ids}")
+    print(f"ID работяг: {worker_ids}")
     print(f"Количество работников: {len(worker_ids)}")
-    amount_of_contracts, active_contracts_id = work_contract(worker_ids)
+    amount_of_contracts, active_contracts_id, person_id_with_active_contract = work_contract(worker_ids)
     print(f"Количество контрактов: {amount_of_contracts}")
     print(f"Id активных контрактов: {active_contracts_id}")
+    print(f"Id людей с активными контрактами: {person_id_with_active_contract}")
     location_with_spaceship_1, location_with_spaceship_2, location_with_spaceship_3, location_with_spaceship_4, location_with_spaceship_5 = locations()
     print(f"Локи на 1 корбале {location_with_spaceship_1}")
     person_on_ship_1, person_on_ship_2, person_on_ship_3, person_on_ship_4, person_on_ship_5 = boarded_humans(human_ids)
@@ -475,12 +560,14 @@ def main():
     human_location(person_on_ship_1, person_on_ship_2, person_on_ship_3, person_on_ship_4, person_on_ship_5,
                    location_with_spaceship_1, location_with_spaceship_2, location_with_spaceship_3,
                    location_with_spaceship_4, location_with_spaceship_5)
-    employee_id = employee(active_contracts_id)
+    employee_id, employee_id_ship_1, employee_id_ship_2, employee_id_ship_3, employee_id_ship_4, employee_id_ship_5 = employee(active_contracts_id, person_id_with_active_contract, person_on_ship_1, person_on_ship_2, person_on_ship_3, person_on_ship_4, person_on_ship_5)
     print(f"ID работника: {employee_id}")
-    task_id, done_task_info = human_task(employee_id)
+    task_id, done_task_info, human_task_on_ship_1, human_task_on_ship_2, human_task_on_ship_3, human_task_on_ship_4, human_task_on_ship_5 = human_task(employee_id, employee_id_ship_1, employee_id_ship_2, employee_id_ship_3, employee_id_ship_4, employee_id_ship_5)
     print(f"Оно? {done_task_info}")
     i = human_job_is_done(done_task_info)
     print(f"Кол-во выполненных тасков: {i}")
-
+    human_task_location(location_with_spaceship_1, location_with_spaceship_2, location_with_spaceship_3,
+                        location_with_spaceship_4, location_with_spaceship_5, human_task_on_ship_1, human_task_on_ship_2, human_task_on_ship_3, human_task_on_ship_4, human_task_on_ship_5)
+    createFullInsertFile()
 
 main()
