@@ -89,21 +89,27 @@ def check_planet(eve_robots_ids, planet_id):
     check_raznica = [3, 6]
     max_check_date = datetime.date(year=2022, month=11, day=10)
     check_of_planet = 0
+    eva_checked = []
+    what_planet_checked = []
     for index, value in enumerate(planet_id):
         temp_date = random_date(datetime.date(year=2015, month=1, day=1), datetime.date(year=2015, month=1, day=31))
         while temp_date <= max_check_date:
             check_of_planet += 1
+            eve = random.choice(eve_robots_ids)
             next_date = temp_date + relativedelta(months=random.choice(check_raznica))
             substring = "('" + str(value) + "', '" + "FALSE" + "','" + str(next_date) + "', '" + str(
-                random.choice(eve_robots_ids)) + "')"
+                eve) + "')"
             temp_date = next_date
+            eva_checked.append(eve)
+            what_planet_checked.append(value)
             if index != len(planet_id) - 1 or temp_date <= max_check_date:
                 substring += ", "
             string += substring
+            check_task_info = dict(zip(eva_checked, what_planet_checked))
     string += ";"
     stream = open("inserts/check_planet.txt", 'w')
     stream.write(string)
-    return check_of_planet
+    return check_of_planet, eva_checked, what_planet_checked, check_task_info
 
 
 # Инсерты людей
@@ -274,6 +280,66 @@ def robots_on_spaceship(robots_id, eve_robots_ids, spaceship_id):
     stream.write(string)
 
 
+def robot_task(robots_id, eva_checked, eve_robots_ids, check_of_planet):
+    string = "INSERT INTO s311289.Robot_task (task_type, is_done, robot_id ) VALUES"
+    task = open("raw_data/robot_task", "r", encoding="utf-8").read().splitlines()
+    task_amount = 0
+    task_id = []
+    task_checked_id = []
+    i = 0
+    for index, value in enumerate(eva_checked):
+        i += 1
+        task_checked_id.append(i)
+        substring = "('" + "Check planet" + "', '" + "TRUE" + "', '" + str(value) + "')"
+        if index != len(eva_checked) - 1:
+            substring += ","
+        string += substring
+        task_amount += 1
+    print(f"скок чекнутых {i}")
+    for index, value in enumerate(robots_id):
+        i += 1
+        task_id.append(i)
+        tr_fl = ["TRUE", "FALSE"]
+        rnd_bool = random.choice(tr_fl)
+        substring = "('" + str(random.choice(task)) + "', '" + str(rnd_bool) + "', '" + str(value) + "')"
+        if index != len(robots_id) - 1:
+            substring += ","
+        string += substring
+        task_amount += 1
+    nada = eve_robots_ids[3:100]
+    print(i)
+    for index, value in enumerate(nada):
+        i += 1
+        task_id.append(i)
+        substring = "('" + "Check planet" + "', '" + "FALSE" + "', '" + str(value) + "')"
+        if index != len(nada) - 1:
+            substring += ","
+        string += substring
+        task_amount += 1
+    print(i)
+    string += ";"
+    stream = open("inserts/robot_task.txt", "w")
+    stream.write(string)
+    return task_amount, task_id, task_checked_id
+
+
+def robot_task_location(task_id, planet_id, task_checked_id, what_planet_checked):
+    string = "INSERT INTO s311289.Robot_task_location (task_id , planet_id ) VALUES "
+    for index, value in enumerate(task_checked_id):
+        substring = "('" + str(value) + "', '" + str(what_planet_checked[index]) + "')"
+        if index != len(task_checked_id):
+            substring += ","
+        string += substring
+    for index, value in enumerate(task_id):
+        substring = "('" + str(value) + "', '" + str(random.choice(planet_id)) + "')"
+        if index != len(task_id) - 1:
+            substring += ","
+        string += substring
+    string += ";"
+    stream = open("inserts/robot_task_location.txt", "w")
+    stream.write(string)
+
+
 # ТУТ ВЕЗДЕ ENUMERATE МОЖНО ЮЗАТЬ
 # Инсерты людей на локации в зависимости от того, на каком они корабле
 def human_location(person_on_ship_1, person_on_ship_2, person_on_ship_3, person_on_ship_4, person_on_ship_5,
@@ -388,8 +454,12 @@ def main():
     print(f"Id ЕВА {eve_robots_ids}")
     print(f"Id роботов {robots_id}")
     robots_on_spaceship(robots_id, eve_robots_ids, spaceship_id)
-    check_of_planet = check_planet(eve_robots_ids, planet_id)
+    check_of_planet, eva_checked, what_planet_checked, check_task_info = check_planet(eve_robots_ids, planet_id)
     print(f"Кол-во чеков {check_of_planet}")
+    task_amount, task_id, task_checked_id = robot_task(robots_id, eva_checked, eve_robots_ids, check_of_planet)
+    print(f"Роботы сделали - {task_amount}")
+    print(f"ID task robot - {task_id}")
+    robot_task_location(task_id, planet_id, task_checked_id, what_planet_checked)
     human_amount, worker_ids, human_ids = humans()
     print(f"Все людей: {human_amount}")
     print(f"ID людей: {human_ids}")
